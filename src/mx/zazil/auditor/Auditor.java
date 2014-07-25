@@ -13,6 +13,7 @@ import java.io.ObjectOutputStream;
 import java.io.OptionalDataException;
 import java.io.Serializable;
 import java.io.StreamCorruptedException;
+import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.jms.Connection;
@@ -28,6 +29,7 @@ import javax.jms.Session;
  * @author Hector Rodriguez
  */
 public class Auditor {
+    
     public static void baja(Serializable obj, Transaccion transaccion, String mensaje, ServicioAuditable sa) throws JMSException{
         MensajeAudita ma = generaMensajeAudita(mensaje,obj,transaccion);
         ma.setTipo(MensajeAudita.Tipo.baja);
@@ -95,5 +97,27 @@ public class Auditor {
         } catch (IOException e) {
             throw new RuntimeException("IO operation failed during serialization. " + e.getMessage()); //$NON-NLS-1$
         }
+    }
+    
+    public static void alta(Serializable o, Transaccion transaccion, String mensaje, ServicioAuditable sa) throws JMSException {
+        MensajeAudita ma = generaMensajeAudita(mensaje, o, transaccion);
+        ma.setTipo(MensajeAudita.Tipo.alta);
+        Auditor.sendJMSMessageToAuditaQueue(ma, sa.getQueueFactory(), sa.getAuditaQueue());
+
+    }
+
+    public static void cambio(Serializable o, Transaccion transaccion, String mensaje, ServicioAuditable sa) throws JMSException {
+        MensajeAudita ma = generaMensajeAudita(mensaje, o, transaccion);
+        ma.setTipo(MensajeAudita.Tipo.cambio);
+        Auditor.sendJMSMessageToAuditaQueue(ma, sa.getQueueFactory(), sa.getAuditaQueue());
+    }
+
+    public static Transaccion iniciaTransaccion(ServicioAuditable sa) {
+        Transaccion t = new Transaccion();
+        t.setTime(Calendar.getInstance().getTime());
+        t.setTransaccion(sa.getNextTransaction());
+        t.setUsuario(sa.getUsuario());
+        t.setModulo(sa.getModulo());//TODO parsear solamente el modulo o hacer un metodo propio del servicio auditable
+        return t;
     }
 }
